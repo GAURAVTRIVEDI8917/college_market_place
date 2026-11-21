@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CampusMart - College Marketplace</title>
+
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+
+<body class="marketplace-page">
+
+    <nav class="navbar marketplace-header">
+        <a class="brand" href="{{ url_for('home') }}">Campus<span>Mart</span></a>
+        <form class="search-box header-search" id="searchForm" role="search">
+            <input type="search" id="searchInput" name="q" value="{{ search }}"
+                   placeholder="Search for books, electronics and more"
+                   aria-label="Search products">
+            <select id="categoryFilter" name="category" aria-label="Filter by category">
+                <option value="">All categories</option>
+                {% for item in categories %}
+                    <option value="{{ item.category }}"
+                        {% if selected_category == item.category %}selected{% endif %}>
+                        {{ item.category }}
+                    </option>
+                {% endfor %}
+            </select>
+            <button type="submit" id="searchBtn">Search</button>
+            <button type="button" class="clear-search-button" id="clearSearch"
+                    aria-label="Clear search and filters">Clear</button>
+        </form>
+
+        <div class="nav-links header-actions">
+            <button class="website-share-button" id="shareWebsite" type="button"
+                    data-share-title="CampusMart"
+                    data-share-url="{{ request.url_root }}">
+                Share
+            </button>
+            <span class="share-status" id="websiteShareStatus" role="status" aria-live="polite"></span>
+            {% if session.get('user_id') %}
+                <span class="welcome-user">Hi, {{ session.get('user_name') }}</span>
+                <a href="{{ url_for('account') }}">Account</a>
+                <a href="{{ url_for('orders') }}">Orders</a>
+                <a href="{{ url_for('favorites') }}">Saved</a>
+                {% if session.get('is_admin') %}
+                    <a href="{{ url_for('admin_dashboard') }}">Admin</a>
+                {% endif %}
+                <form class="nav-logout" method="post" action="{{ url_for('logout') }}">
+                    <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
+                    <button class="nav-logout-button" type="submit">Logout</button>
+                </form>
+            {% else %}
+                <a class="login-link" href="{{ url_for('login') }}">Login</a>
+                <a class="signup-link" href="{{ url_for('register') }}">Sign up</a>
+            {% endif %}
+            <a href="{{ url_for('sell') }}" class="sell-btn">Sell an item</a>
+        </div>
+    </nav>
+
+    <main>
+    {% with messages = get_flashed_messages() %}
+        {% for message in messages %}
+            <p class="notice page-container">{{ message }}</p>
+        {% endfor %}
+    {% endwith %}
+
+    <aside class="marketplace-promo" aria-label="CampusMart marketplace information">
+        <span class="promo-icon" aria-hidden="true">✦</span>
+        <p><strong>Good for your budget. Better for the planet.</strong> Find pre-loved campus essentials at student-friendly prices.</p>
+        <a href="#products">Browse listings <span aria-hidden="true">→</span></a>
+    </aside>
+
+    <section class="hero">
+        <div class="hero-copy">
+            <p class="hero-eyebrow">YOUR CAMPUS. YOUR MARKETPLACE.</p>
+            <h1>Good finds.<br><span>Great student prices.</span></h1>
+            <p>Discover pre-loved essentials from students around your campus.</p>
+            <div class="hero-actions">
+                <a href="#products" class="main-btn">Explore products</a>
+                <a href="{{ url_for('sell') }}" class="hero-sell-link">Start selling</a>
+            </div>
+        </div>
+        <div class="hero-art" aria-hidden="true">
+            <div class="hero-orbit orbit-one"></div>
+            <div class="hero-orbit orbit-two"></div>
+            <div class="hero-product-card hero-book"><span>BOOKS</span><strong>Learn more.<br>Spend less.</strong></div>
+            <div class="hero-product-card hero-laptop"><span>TECH</span><strong>Smart finds<br>for campus.</strong></div>
+            <div class="hero-sticker">Reuse<br>and save</div>
+        </div>
+    </section>
+
+    <section class="categories category-section" id="categories">
+        <div class="section-heading">
+            <div>
+                <p class="section-kicker">SHOP YOUR WAY</p>
+                <h2>Browse categories</h2>
+            </div>
+        </div>
+        <div class="category-list">
+            {% for item in categories %}
+                <a class="category" href="{{ url_for('home', category=item.category) }}">
+                    <span class="category-icon" aria-hidden="true">
+                        {% if item.category == "Books" %}B
+                        {% elif item.category == "Electronics" %}E
+                        {% elif item.category == "Clothing" %}C
+                        {% elif item.category == "Furniture" %}F
+                        {% elif item.category == "Sports" %}S
+                        {% else %}+
+                        {% endif %}
+                    </span>
+                    {{ item.category }}
+                    <span class="category-arrow" aria-hidden="true">→</span>
+                </a>
+            {% else %}
+                <p>No categories yet. Be the first to list a product!</p>
+            {% endfor %}
+        </div>
+    </section>
+
+    <section class="products product-section" id="products">
+        <div class="section-heading">
+            <div>
+                <p class="section-kicker">FRESH ON CAMPUS</p>
+                <h2>Recently listed</h2>
+            </div>
+            <span class="section-caption">Find your next great deal</span>
+        </div>
+        <div class="product-toolbar">
+            <div class="quick-filters" role="group" aria-label="Quick category filters">
+                <button class="filter-chip is-active" type="button" data-category-filter="">All items</button>
+                {% for item in categories %}
+                    <button class="filter-chip" type="button"
+                            data-category-filter="{{ item.category|lower }}">{{ item.category }}</button>
+                {% endfor %}
+            </div>
+            <label class="sort-control" for="sortProducts">
+                <span>Sort by</span>
+                <select id="sortProducts">
+                    <option value="newest">Newest first</option>
+                    <option value="price-low">Price: low to high</option>
+                    <option value="price-high">Price: high to low</option>
+                    <option value="name">Name: A to Z</option>
+                </select>
+            </label>
+        </div>
+        <p id="resultsCount" class="results-count" role="status" aria-live="polite"></p>
+        <p id="noResults" class="no-results" hidden>
+            No products found. Try another search.
+        </p>
+        <div class="product-grid">
+            {% for product in products %}
+                <article class="product-card"
+                    data-category="{{ product.category|lower }}"
+                    data-price="{{ product.price }}"
+                    data-listing-id="{{ product.id }}"
+                    data-status="{{ product.status }}"
+                    data-search="{{ (product.name ~ ' ' ~ product.category ~ ' ' ~ product.description)|lower }}">
+                    <div class="product-image-wrap">
+                        <a class="product-link" href="{{ url_for('product_detail', product_id=product.id) }}"
+                           aria-label="View {{ product.name }} details">
+                            <img class="product-image"
+                                 src="{{ url_for('static', filename=product.image) }}"
+                                 alt="{{ product.name }}"
+                                 onerror="this.onerror=null;this.src='{{ url_for('static', filename='images/product-placeholder.svg') }}'">
+                        </a>
+                        <span class="product-category-label">{{ product.category }}</span>
+                        {% if product.status == "sold" %}<span class="product-sold-label">Sold</span>{% endif %}
+                        {% if session.get('user_id') %}
+                            <form class="card-save-form" method="post"
+                                  action="{{ url_for('toggle_favorite', product_id=product.id) }}">
+                                <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
+                                <input type="hidden" name="next" value="{{ request.full_path }}">
+                                <button class="card-save-button" type="submit"
+                                        aria-label="{% if product.is_saved %}Remove saved{% else %}Save{% endif %} {{ product.name }}">
+                                    {% if product.is_saved %}Saved{% else %}Save{% endif %}
+                                </button>
+                            </form>
+                        {% endif %}
+                    </div>
+                    <div class="product-card-content">
+                        <a class="product-link product-title-link" href="{{ url_for('product_detail', product_id=product.id) }}">
+                            <h3>{{ product.name }}</h3>
+                        </a>
+                        <p class="product-description">{{ product.description }}</p>
+                        <div class="product-price-row">
+                            <p class="product-price">₹{{ "%.2f"|format(product.price) }}</p>
+                            <p class="rating">
+                                {% if product.review_count %}
+                                    ★ {{ "%.1f"|format(product.average_rating) }} <span>({{ product.review_count }})</span>
+                                {% else %}
+                                    New
+                                {% endif %}
+                            </p>
+                        </div>
+                        <p class="product-seller">Listed by {{ product.seller_name }}</p>
+                        <div class="product-card-actions">
+                            <a class="card-action" href="{{ url_for('product_detail', product_id=product.id) }}">View details</a>
+                            <button class="product-card-share" type="button"
+                                    data-share-title="{{ product.name }}"
+                                    data-share-url="{{ url_for('product_detail', product_id=product.id, _external=True) }}">
+                                Share
+                            </button>
+                        </div>
+                        <p class="card-share-status" role="status" aria-live="polite"></p>
+                    </div>
+                </article>
+            {% else %}
+                <p class="empty-state">No listings match these filters. Try another search or add the first listing.</p>
+            {% endfor %}
+
+        </div>
+
+    </section>
+
+
+    <footer>
+        <h3>CampusMart</h3>
+        <p>Good finds, fair prices, less waste.</p>
+        <p>© 2026 CampusMart</p>
+    </footer>
+
+    <nav class="mobile-market-nav" aria-label="Quick navigation">
+        <a class="mobile-nav-active" href="{{ url_for('home') }}">
+            <span aria-hidden="true">⌂</span><small>Explore</small>
+        </a>
+        {% if session.get('user_id') %}
+            <a href="{{ url_for('favorites') }}">
+                <span aria-hidden="true">♡</span><small>Saved</small>
+            </a>
+            <a href="{{ url_for('orders') }}">
+                <span aria-hidden="true">▤</span><small>Orders</small>
+            </a>
+            <a href="{{ url_for('account') }}">
+                <span aria-hidden="true">○</span><small>Account</small>
+            </a>
+        {% else %}
+            <a href="{{ url_for('login') }}">
+                <span aria-hidden="true">♡</span><small>Saved</small>
+            </a>
+            <a href="{{ url_for('login') }}">
+                <span aria-hidden="true">▤</span><small>Orders</small>
+            </a>
+            <a href="{{ url_for('login') }}">
+                <span aria-hidden="true">○</span><small>Login</small>
+            </a>
+        {% endif %}
+        <a class="mobile-nav-sell" href="{{ url_for('sell') }}">
+            <span aria-hidden="true">＋</span><small>Sell</small>
+        </a>
+    </nav>
+    </main>
+
+
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+    <script src="{{ url_for('static', filename='share.js') }}"></script>
+    <script src="{{ url_for('static', filename='website-share.js') }}"></script>
+
+</body>
+</html>

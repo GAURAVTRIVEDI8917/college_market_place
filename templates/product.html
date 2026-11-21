@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ product.name }} | CampusMart</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <nav class="navbar">
+        <a class="brand" href="{{ url_for('home') }}">Campus<span>Mart</span></a>
+        <div class="nav-links">
+            <a href="{{ url_for('home') }}">Home</a>
+            <button class="website-share-button" id="shareWebsite" type="button"
+                    data-share-title="CampusMart"
+                    data-share-url="{{ request.url_root }}">
+                Share Website
+            </button>
+            <span class="share-status" id="websiteShareStatus" role="status" aria-live="polite"></span>
+            {% if session.get('user_id') %}
+                <a href="{{ url_for('account') }}">Account</a>
+                <a href="{{ url_for('my_listings') }}">My Listings</a>
+                <a href="{{ url_for('orders') }}">Orders</a>
+                <a href="{{ url_for('favorites') }}">Saved</a>
+                {% if session.get('is_admin') %}
+                    <a href="{{ url_for('admin_dashboard') }}">Admin</a>
+                {% endif %}
+                <form class="nav-logout" method="post" action="{{ url_for('logout') }}">
+                    <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
+                    <button class="nav-logout-button" type="submit">Logout</button>
+                </form>
+            {% else %}
+                <a href="{{ url_for('login') }}">Login</a>
+                <a href="{{ url_for('register') }}">Sign Up</a>
+            {% endif %}
+        </div>
+    </nav>
+
+    <main class="page-container">
+        {% with messages = get_flashed_messages() %}
+            {% for message in messages %}
+                <p class="notice">{{ message }}</p>
+            {% endfor %}
+        {% endwith %}
+
+        <article class="detail-card">
+            <img class="detail-image"
+                 src="{{ url_for('static', filename=product.image) }}"
+                 alt="{{ product.name }}"
+                 onerror="this.onerror=null;this.src='{{ url_for('static', filename='images/product-placeholder.svg') }}'">
+            <div class="detail-copy">
+                <span class="category-tag">{{ product.category }}</span>
+                <h1>{{ product.name }}</h1>
+                <p class="detail-price">₹{{ "%.2f"|format(product.price) }}</p>
+                <p>{{ product.description }}</p>
+                <p class="muted">Listed by {{ product.seller_name }}</p>
+                {% if product.seller_phone %}
+                    <p class="muted">Seller mobile: {{ product.seller_phone }}</p>
+                {% endif %}
+                <div class="share-actions">
+                    <button class="share-button" id="shareProduct" type="button"
+                            data-share-title="{{ product.name }}"
+                            data-share-url="{{ request.url }}">
+                        Share product
+                    </button>
+                    <p class="share-status" id="shareStatus" role="status" aria-live="polite"></p>
+                </div>
+                {% if product.status == "sold" %}
+                    <p class="sold-badge">Sold</p>
+                {% endif %}
+                <p class="rating">
+                    {% if product.review_count %}
+                        ★ {{ "%.1f"|format(product.average_rating) }} from {{ product.review_count }} review(s)
+                    {% else %}
+                        No reviews yet
+                    {% endif %}
+                </p>
+                {% if session.get('user_id') == product.user_id %}
+                    <a class="primary-button" href="{{ url_for('edit_product', product_id=product.id) }}">Edit listing</a>
+                    <form method="post" action="{{ url_for('delete_own_product', product_id=product.id) }}"
+                          onsubmit="return confirm('Remove this listing?');">
+                        <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
+                        <button class="danger-button" type="submit">Remove my listing</button>
+                    </form>
+                {% elif product.status == "available" %}
+                    {% if not product.seller_phone %}
+                        <p class="notice">The seller needs to add a mobile number before this item can be ordered. You can still contact them by email.</p>
+                    {% elif session.get('user_id') %}
+                        <form class="order-request-form" method="post"
+                              action="{{ url_for('place_order_request', product_id=product.id) }}">
+                            <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
+                            <h2>Interested? Request this item</h2>
+                            <p class="muted">No online payment is taken here. The seller will contact you to confirm.</p>
+                            <label for="buyer_name">Your name</label>
+                            <input id="buyer_name" name="buyer_name" type="text" maxlength="100"
+                                   value="{{ viewer.name if viewer else '' }}" required>
+                            <label for="buyer_phone">Your mobile number</label>
+                            <input id="buyer_phone" name="buyer_phone" type="tel"
+                                   value="{{ viewer.phone if viewer and viewer.phone else '' }}"
+                                   placeholder="+91 98765 43210" pattern="\+?[0-9\s()-]{8,20}"
+                                   title="Include country code, e.g. +919876543210" required>
+                            <label for="order_note">Message to seller (optional)</label>
+                            <textarea id="order_note" name="note" maxlength="500"
+                                      placeholder="Ask a question or suggest a convenient pickup time"></textarea>
+                            <button class="primary-button order-button" type="submit">Request to order</button>
+                        </form>
+                    {% else %}
+                        <a class="primary-button" href="{{ url_for('login', next=request.path) }}">Log in to order</a>
+                    {% endif %}
+                    <a class="primary-button" href="mailto:{{ product.seller_email }}?subject={{ ('CampusMart: ' ~ product.name)|urlencode }}">
+                        Contact seller by email
+                    </a>
+                    {% if product.seller_phone|whatsapp_url(product.name) %}
+                        <a class="whatsapp-button" href="{{ product.seller_phone|whatsapp_url(product.name) }}"
+                           target="_blank" rel="noopener noreferrer">Contact on WhatsApp</a>
+                    {% endif %}
+                    {% if session.get('user_id') %}
+                        <form method="post" action="{{ url_for('toggle_favorite', product_id=product.id) }}">
+                            <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
+                            <input type="hidden" name="next" value="{{ request.path }}">
+                            <button class="save-button" type="submit">
+                                {% if product.is_saved %}Remove saved{% else %}Save this product{% endif %}
+                            </button>
+                        </form>
+                    {% endif %}
+                {% else %}
+                    <p>This product has been sold and is no longer available.</p>
+                {% endif %}
+            </div>
+        </article>
+
+        <section class="content-panel">
+            <h2>Reviews</h2>
+            {% if product.status == "available" and session.get('user_id') and session.get('user_id') != product.user_id %}
+                <form class="review-form" method="post">
+                    <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
+                    <label for="rating">Your rating</label>
+                    <select id="rating" name="rating" required>
+                        <option value="">Choose stars</option>
+                        <option value="5">5 - Excellent</option>
+                        <option value="4">4 - Good</option>
+                        <option value="3">3 - Okay</option>
+                        <option value="2">2 - Poor</option>
+                        <option value="1">1 - Bad</option>
+                    </select>
+                    <label for="comment">Your review</label>
+                    <textarea id="comment" name="comment" maxlength="1000" required
+                              placeholder="Share your experience with this listing"></textarea>
+                    <button class="primary-button" type="submit">Post / update review</button>
+                </form>
+            {% elif product.status == "available" and not session.get('user_id') %}
+                <p><a href="{{ url_for('login') }}">Login</a> to leave a review.</p>
+            {% endif %}
+
+            <div class="review-list">
+                {% for review in reviews %}
+                    <article class="review">
+                        <p class="rating">{{ "★" * review.rating }}{{ "☆" * (5 - review.rating) }}</p>
+                        <p>{{ review.comment }}</p>
+                        <p class="muted">By {{ review.reviewer_name }} · {{ review.created_at }}</p>
+                    </article>
+                {% else %}
+                    <p class="empty-state">No reviews yet. Be the first to share feedback.</p>
+                {% endfor %}
+            </div>
+        </section>
+    </main>
+    <script src="{{ url_for('static', filename='share.js') }}" defer></script>
+    <script src="{{ url_for('static', filename='website-share.js') }}" defer></script>
+</body>
+</html>

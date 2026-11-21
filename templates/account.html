@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Account | CampusMart</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <nav class="navbar">
+        <a class="brand" href="{{ url_for('home') }}">Campus<span>Mart</span></a>
+        <div class="nav-links">
+            <a href="{{ url_for('home') }}">Home</a>
+            <button class="website-share-button" id="shareWebsite" type="button"
+                    data-share-title="CampusMart"
+                    data-share-url="{{ request.url_root }}">
+                Share Website
+            </button>
+            <span class="share-status" id="websiteShareStatus" role="status" aria-live="polite"></span>
+            <a href="{{ url_for('my_listings') }}">My Listings</a>
+            <a href="{{ url_for('orders') }}">Orders</a>
+            <a href="{{ url_for('favorites') }}">Saved</a>
+            {% if session.get('is_admin') %}
+                <a href="{{ url_for('admin_dashboard') }}">Admin</a>
+            {% endif %}
+        </div>
+    </nav>
+    <main class="page-container">
+        <section class="content-panel">
+            <h1>My Account</h1>
+            {% with messages = get_flashed_messages() %}
+                {% for message in messages %}
+                    <p class="notice">{{ message }}</p>
+                {% endfor %}
+            {% endwith %}
+            <form class="review-form" method="post">
+                <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
+                <label for="name">Name</label>
+                <input id="name" name="name" type="text" maxlength="100"
+                       value="{{ user.name }}" required>
+
+                <label for="email">Email</label>
+                <input id="email" type="email" value="{{ user.email }}" disabled>
+                <p class="muted">Email address cannot currently be changed.</p>
+
+                <label for="phone">WhatsApp phone number (optional)</label>
+                <input id="phone" name="phone" type="tel"
+                       pattern="\+?[0-9\s()-]{8,20}"
+                       title="Include country code, e.g. +919876543210"
+                       value="{{ user.phone or '' }}"
+                       placeholder="+91 98765 43210">
+
+                <h2>Change password (optional)</h2>
+                <label for="current_password">Current password</label>
+                <input id="current_password" name="current_password" type="password"
+                       autocomplete="current-password">
+                <label for="new_password">New password (minimum 8 characters)</label>
+                <input id="new_password" name="new_password" type="password"
+                       minlength="8" autocomplete="new-password">
+
+                <button class="primary-button" type="submit">Save Account</button>
+            </form>
+        </section>
+    </main>
+    <script src="{{ url_for('static', filename='website-share.js') }}" defer></script>
+</body>
+</html>

@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Saved Products | CampusMart</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <nav class="navbar">
+        <a class="brand" href="{{ url_for('home') }}">Campus<span>Mart</span></a>
+        <div class="nav-links">
+            <a href="{{ url_for('home') }}">Home</a>
+            <button class="website-share-button" id="shareWebsite" type="button"
+                    data-share-title="CampusMart"
+                    data-share-url="{{ request.url_root }}">
+                Share Website
+            </button>
+            <span class="share-status" id="websiteShareStatus" role="status" aria-live="polite"></span>
+            <a href="{{ url_for('account') }}">Account</a>
+            <a href="{{ url_for('my_listings') }}">My Listings</a>
+            <a href="{{ url_for('orders') }}">Orders</a>
+            {% if session.get('is_admin') %}
+                <a href="{{ url_for('admin_dashboard') }}">Admin</a>
+            {% endif %}
+            <a href="{{ url_for('sell') }}" class="sell-btn">+ Sell Item</a>
+            <form class="nav-logout" method="post" action="{{ url_for('logout') }}">
+                <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
+                <button class="nav-logout-button" type="submit">Logout</button>
+            </form>
+        </div>
+    </nav>
+    <main class="page-container">
+        <h1>Saved Products</h1>
+        {% with messages = get_flashed_messages() %}
+            {% for message in messages %}
+                <p class="notice">{{ message }}</p>
+            {% endfor %}
+        {% endwith %}
+        <div class="product-grid">
+            {% for product in products %}
+                <article class="product-card">
+                    <a class="product-link" href="{{ url_for('product_detail', product_id=product.id) }}">
+                        <img class="product-image" src="{{ url_for('static', filename=product.image) }}"
+                             alt="{{ product.name }}"
+                             onerror="this.onerror=null;this.src='{{ url_for('static', filename='images/product-placeholder.svg') }}'">
+                        <h2>{{ product.name }}</h2>
+                        <p>{{ product.category }} · ₹{{ "%.2f"|format(product.price) }}</p>
+                    </a>
+                    {% if product.status == "sold" %}<p class="sold-badge">Sold</p>{% endif %}
+                    <p>Seller: {{ product.seller_name }}</p>
+                    <form method="post" action="{{ url_for('toggle_favorite', product_id=product.id) }}">
+                        <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
+                        <input type="hidden" name="next" value="{{ request.path }}">
+                        <button class="save-button" type="submit">Remove from saved</button>
+                    </form>
+                </article>
+            {% else %}
+                <p class="empty-state">No saved products yet. Explore the marketplace and save a listing.</p>
+            {% endfor %}
+        </div>
+    </main>
+    <script src="{{ url_for('static', filename='website-share.js') }}" defer></script>
+</body>
+</html>

@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard | CampusMart</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <nav class="navbar">
+        <a class="brand" href="{{ url_for('home') }}">Campus<span>Mart</span></a>
+        <div class="nav-links">
+            <a href="{{ url_for('home') }}">Home</a>
+            <a href="{{ url_for('orders') }}">Orders</a>
+            <button class="website-share-button" id="shareWebsite" type="button"
+                    data-share-title="CampusMart"
+                    data-share-url="{{ request.url_root }}">
+                Share Website
+            </button>
+            <span class="share-status" id="websiteShareStatus" role="status" aria-live="polite"></span>
+            <form class="nav-logout" method="post" action="{{ url_for('logout') }}">
+                <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
+                <button class="nav-logout-button" type="submit">Logout</button>
+            </form>
+        </div>
+    </nav>
+    <main class="page-container">
+        <h1>Administrator Dashboard</h1>
+        <p class="muted">Review marketplace listings and remove inappropriate content.</p>
+        {% with messages = get_flashed_messages() %}
+            {% for message in messages %}
+                <p class="notice">{{ message }}</p>
+            {% endfor %}
+        {% endwith %}
+
+        <section class="content-panel">
+            <h2>Student accounts ({{ users|length }})</h2>
+            <div class="admin-list">
+                {% for user in users %}
+                    <article class="admin-row">
+                        <div>
+                            <strong>{{ user.name }}</strong>
+                            <p>{{ user.email }}{% if user.is_admin %} · Administrator{% endif %}</p>
+                            <p class="muted">
+                                {% if user.is_active %}Active{% else %}Suspended{% endif %}
+                            </p>
+                        </div>
+                        {% if not user.is_admin %}
+                            <form method="post"
+                                  action="{{ url_for('admin_toggle_user', user_id=user.id) }}">
+                                <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
+                                <button class="danger-button" type="submit">
+                                    {% if user.is_active %}Suspend account{% else %}Reactivate account{% endif %}
+                                </button>
+                            </form>
+                        {% endif %}
+                    </article>
+                {% endfor %}
+            </div>
+        </section>
+
+        <section class="content-panel">
+            <h2>Listings ({{ products|length }})</h2>
+            <div class="admin-list">
+                {% for product in products %}
+                    <article class="admin-row">
+                        <div>
+                            <a href="{{ url_for('product_detail', product_id=product.id) }}">
+                                <strong>{{ product.name }}</strong>
+                            </a>
+                            <p>{{ product.category }} · ₹{{ "%.2f"|format(product.price) }}
+                               · Seller: {{ product.seller_name }}</p>
+                            <p>{{ product.description }}</p>
+                        </div>
+                        <form method="post"
+                              action="{{ url_for('admin_delete_product', product_id=product.id) }}"
+                              onsubmit="return confirm('Remove this listing and its reviews?');">
+                            <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
+                            <button class="danger-button" type="submit">Remove listing</button>
+                        </form>
+                    </article>
+                {% else %}
+                    <p class="empty-state">No listings to moderate.</p>
+                {% endfor %}
+            </div>
+        </section>
+
+        <section class="content-panel">
+            <h2>Reviews ({{ reviews|length }})</h2>
+            <div class="admin-list">
+                {% for review in reviews %}
+                    <article class="admin-row">
+                        <div>
+                            <strong>{{ review.product_name }} · {{ review.rating }}/5</strong>
+                            <p>{{ review.comment }}</p>
+                            <p class="muted">By {{ review.reviewer_name }} · {{ review.created_at }}</p>
+                        </div>
+                        <form method="post"
+                              action="{{ url_for('admin_delete_review', review_id=review.id) }}"
+                              onsubmit="return confirm('Remove this review?');">
+                            <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
+                            <button class="danger-button" type="submit">Remove review</button>
+                        </form>
+                    </article>
+                {% else %}
+                    <p class="empty-state">No reviews to moderate.</p>
+                {% endfor %}
+            </div>
+        </section>
+    </main>
+    <script src="{{ url_for('static', filename='website-share.js') }}" defer></script>
+</body>
+</html>

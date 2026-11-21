@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sell Product | CampusMart</title>
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: Arial, sans-serif;
+        }
+
+        body {
+            background: #f4f6f9;
+            padding: 30px 15px;
+        }
+
+        .container {
+            max-width: 550px;
+            margin: auto;
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+        }
+
+        h2 {
+            text-align: center;
+            color: #243b64;
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #777;
+            margin-bottom: 25px;
+        }
+
+        label {
+            display: block;
+            margin: 15px 0 7px;
+            font-weight: bold;
+        }
+
+        input, select, textarea {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            font-size: 15px;
+        }
+
+        textarea {
+            height: 110px;
+            resize: vertical;
+        }
+
+        button {
+            width: 100%;
+            padding: 13px;
+            margin-top: 22px;
+            background: linear-gradient(135deg, #174ea6, #2563eb);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 160ms ease, box-shadow 160ms ease, background 160ms ease;
+        }
+
+        button:hover, button:focus-visible {
+            background: linear-gradient(135deg, #123f88, #174ea6);
+            box-shadow: 0 5px 14px rgba(23, 78, 166, .2);
+            transform: translateY(-1px);
+        }
+
+        input:focus-visible, select:focus-visible, textarea:focus-visible {
+            outline: 3px solid rgba(37, 99, 235, .2);
+            border-color: #2563eb;
+        }
+
+        .back {
+            display: block;
+            text-align: center;
+            margin-top: 18px;
+            color: #243b64;
+            text-decoration: none;
+        }
+
+        .message {
+            background: #fff0f0;
+            padding: 10px;
+            margin-bottom: 12px;
+            border-radius: 5px;
+            color: #b00020;
+        }
+
+        .delete-listing-form {
+            margin-top: 10px;
+        }
+
+        .delete-listing-button {
+            background: #b42318;
+        }
+
+        .delete-listing-button:hover {
+            background: #8f1b13;
+        }
+
+        .phone-hint {
+            margin: -4px 0 10px;
+            color: #64748b;
+            font-size: 13px;
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="container">
+
+    <h2>{% if product %}Edit Your Listing{% else %}Sell Your Product{% endif %}</h2>
+    <p class="subtitle">
+        {% if product %}Update the product information below{% else %}List your second-hand product on CampusMart{% endif %}
+    </p>
+
+    {% with messages = get_flashed_messages() %}
+        {% for message in messages %}
+            <div class="message">{{ message }}</div>
+        {% endfor %}
+    {% endwith %}
+
+    <form action="{{ url_for('edit_product', product_id=product.id) if product else url_for('sell') }}"
+          method="POST" enctype="multipart/form-data">
+        <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
+
+        <label>Product Name</label>
+        <input type="text" name="name" placeholder="Enter product name"
+               value="{{ product.name if product else '' }}" maxlength="100" required>
+
+        <label for="seller_phone">Your mobile number *</label>
+        <input id="seller_phone" type="tel" name="seller_phone"
+               value="{{ (product.seller_phone or product.account_phone) if product else seller_phone }}"
+               placeholder="+91 98765 43210" pattern="\+?[0-9\s()-]{8,20}"
+               title="Include country code, e.g. +919876543210" required>
+        <p class="phone-hint">Buyers use this number to contact you about the listing.</p>
+
+        <label>Price (₹)</label>
+        <input type="number" name="price" placeholder="Enter price" min="0.01" step="0.01"
+               value="{{ product.price if product else '' }}" required>
+
+        <label>Category</label>
+        <select name="category" required>
+            <option value="">Select Category</option>
+            {% for category in ["Books", "Electronics", "Clothing", "Furniture", "Sports", "Other"] %}
+                <option value="{{ category }}"
+                    {% if product and product.category == category %}selected{% endif %}>
+                    {{ category }}
+                </option>
+            {% endfor %}
+        </select>
+
+        <label>Description</label>
+        <textarea name="description" maxlength="2000" placeholder="Describe your product..." required>{{ product.description if product else '' }}</textarea>
+
+        <label>Product Image</label>
+        {% if product %}
+            <p class="message">Current photo: {{ product.image }}</p>
+        {% endif %}
+        <input type="file" name="image" accept=".jpg,.jpeg,.png,.webp"
+               {% if not product %}required{% endif %}>
+
+        <button type="submit">{% if product %}Save Changes{% else %}Upload Product{% endif %}</button>
+
+    </form>
+
+    {% if product %}
+        <form class="delete-listing-form"
+              method="post"
+              action="{{ url_for('delete_own_product', product_id=product.id) }}"
+              onsubmit="return confirm('Permanently delete this listing?');">
+            <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
+            <button type="submit" class="delete-listing-button">Delete this listing</button>
+        </form>
+    {% endif %}
+
+    <a class="back" href="{{ url_for('home') }}">← Back to Home</a>
+
+</div>
+
+    <script src="{{ url_for('static', filename='website-share.js') }}" defer></script>
+</body>
+</html>

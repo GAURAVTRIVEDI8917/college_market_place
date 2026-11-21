@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Orders | CampusMart</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <nav class="navbar">
+        <a class="brand" href="{{ url_for('home') }}">Campus<span>Mart</span></a>
+        <div class="nav-links">
+            <a href="{{ url_for('home') }}">Home</a>
+            <a href="{{ url_for('my_listings') }}">My Listings</a>
+            <a href="{{ url_for('favorites') }}">Saved</a>
+            <a href="{{ url_for('orders') }}" aria-current="page">Orders</a>
+            <a class="sell-btn" href="{{ url_for('sell') }}">+ Sell Item</a>
+        </div>
+    </nav>
+
+    <main class="page-container">
+        <h1>My Orders</h1>
+        {% with messages = get_flashed_messages() %}
+            {% for message in messages %}
+                <p class="notice" role="status">{{ message }}</p>
+            {% endfor %}
+        {% endwith %}
+
+        <section class="content-panel">
+            <h2>Requests for my listings</h2>
+            <p class="muted">Confirming an order marks the listing sold. Arrange payment and pickup directly with the buyer.</p>
+            <div class="order-list">
+                {% for order in seller_orders %}
+                    <article class="order-card">
+                        <div>
+                            <span class="order-status order-status-{{ order.status }}">{{ order.status|capitalize }}</span>
+                            <h3>{{ order.product_name }} · ₹{{ "%.2f"|format(order.price) }}</h3>
+                            <p>Request from {{ order.buyer_name }} · {{ order.created_at }}</p>
+                            <p><a href="tel:{{ order.buyer_phone }}">{{ order.buyer_phone }}</a></p>
+                            {% if order.note %}<p class="order-note">{{ order.note }}</p>{% endif %}
+                        </div>
+                        {% if order.status == "pending" %}
+                            <div class="order-actions">
+                                <form method="post" action="{{ url_for('update_order_request', order_id=order.id) }}">
+                                    <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
+                                    <input type="hidden" name="action" value="confirm">
+                                    <button class="primary-button" type="submit">Confirm order</button>
+                                </form>
+                                <form method="post" action="{{ url_for('update_order_request', order_id=order.id) }}">
+                                    <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
+                                    <input type="hidden" name="action" value="decline">
+                                    <button class="danger-button" type="submit">Decline</button>
+                                </form>
+                            </div>
+                        {% endif %}
+                    </article>
+                {% else %}
+                    <p class="empty-state">No one has requested your listings yet.</p>
+                {% endfor %}
+            </div>
+        </section>
+
+        <section class="content-panel">
+            <h2>Requests I placed</h2>
+            <div class="order-list">
+                {% for order in buyer_orders %}
+                    <article class="order-card">
+                        <div>
+                            <span class="order-status order-status-{{ order.status }}">{{ order.status|capitalize }}</span>
+                            <h3>{{ order.product_name }} · ₹{{ "%.2f"|format(order.price) }}</h3>
+                            <p>Seller: {{ order.seller_name }} · {{ order.created_at }}</p>
+                            {% if order.seller_phone %}
+                                <p><a href="tel:{{ order.seller_phone }}">{{ order.seller_phone }}</a></p>
+                                {% if order.seller_phone|whatsapp_url(order.product_name) %}
+                                    <a class="whatsapp-button" href="{{ order.seller_phone|whatsapp_url(order.product_name) }}"
+                                       target="_blank" rel="noopener noreferrer">Message seller</a>
+                                {% endif %}
+                            {% endif %}
+                            {% if order.note %}<p class="order-note">{{ order.note }}</p>{% endif %}
+                            {% if order.status == "confirmed" %}
+                                <p class="muted">Contact the seller directly to arrange payment and pickup.</p>
+                            {% endif %}
+                        </div>
+                        {% if order.status == "pending" %}
+                            <form method="post" action="{{ url_for('update_order_request', order_id=order.id) }}">
+                                <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
+                                <input type="hidden" name="action" value="cancel">
+                                <button class="danger-button" type="submit">Cancel request</button>
+                            </form>
+                        {% endif %}
+                    </article>
+                {% else %}
+                    <p class="empty-state">You have not requested an order yet. Browse products to get started.</p>
+                {% endfor %}
+            </div>
+        </section>
+    </main>
+    <script src="{{ url_for('static', filename='website-share.js') }}" defer></script>
+</body>
+</html>
